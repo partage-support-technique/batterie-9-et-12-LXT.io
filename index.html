@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compatibilité Batterie Makita (9Ah/12Ah)</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            text-align: center;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        #container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        /* Conteneur de la recherche et des suggestions */
+        #search-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+            gap: 10px;
+        }
+        #search-input {
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            width: 250px;
+            box-sizing: border-box;
+        }
+        #suggestions-box {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 250px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-top: none;
+            background-color: white;
+            z-index: 10;
+            text-align: left;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .suggestion-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        .suggestion-item:hover {
+            background-color: #e6f7ff;
+        }
+        /* Style des résultats de compatibilité */
+        #results-container {
+            margin-top: 30px;
+            min-height: 80px; 
+            text-align: left;
+            border: 1px solid #eee;
+            padding: 15px;
+            border-radius: 4px;
+            background-color: #fafafa;
+        }
+        .result-line {
+            font-size: 1.1em;
+            margin: 10px 0;
+            display: flex;
+            justify-content: flex-start;
+            gap: 15px;
+        }
+        .result-label {
+            font-weight: bold;
+            color: #555;
+            width: 250px; 
+            text-align: right;
+        }
+        .status-oui {
+            color: green;
+            font-weight: bold;
+            /* Utiliser flex pour centrer verticalement le texte et l'image */
+            display: flex; 
+            align-items: center;
+        }
+        .status-non {
+            color: red;
+            font-weight: bold;
+        }
+        footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            font-size: 0.9em;
+            color: #777;
+            text-align: justify;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="container">
+
+        <header id="logo">
+            <a href="https://www.makita.fr/" target="_blank">
+                <img src="https://www.makita.fr/data/pam/public/makita_logo3.png" alt="MAKITA Logo" style="max-width: 200px; height: auto; margin-bottom: 25px;">
+            </a>
+        </header>
+
+        <h2>Compatibilité batterie 9 et 12Ah (BL1890 et BL18120)</h2>
+
+        <div id="search-container">
+            <label for="search-input" style="font-weight: bold;">Modèle de machine concernée par la demande de compatibilité :</label>
+            <input type="text" id="search-input" list="machine-list" placeholder="Ex: DLM330" oninput="handleInput()" onfocus="handleInput()">
+            <div id="suggestions-box"></div>
+        </div>
+        
+        <div id="results-container" style="display: none;">
+            <div class="result-line">
+                <span class="result-label">Batterie BL1890 :</span>
+                <span id="bl1890-result"></span>
+            </div>
+            <div class="result-line">
+                <span class="result-label">Batterie BL18120 :</span>
+                <span id="bl18120-result"></span>
+            </div>
+        </div>
+        <p id="not-found" style="color: orange; display: none; margin-top: 20px;">Modèle non trouvé dans la base de données.</p>
+
+
+        <footer>
+            <p>
+                <strong>Avertissement sur le déséquilibre :</strong>
+            </p>
+            <p>
+                L'utilisation de batteries de 9 Ah ou 12 Ah, bien que techniquement compatibles, peut engendrer un déséquilibre partiel ou total de la machine en raison de leur poids et de leur encombrement accrus, ce qui pourrait potentiellement affecter le confort et la précision d'utilisation.
+            </p>
+        </footer>
+
+    </div>
+
+    <script>
+        // --- CONSTANTES POUR LES IMAGES DE BATTERIE AJOUTÉES ---
+        const BL1890_IMG = '<img src="https://fi.makitamedia.com/images/3_Makita/301_machines/3011_a_GS1/30120_JPG_zoom/1915H4-0_C2L0.jpg" alt="BL1890" style="height: 25px; vertical-align: middle; margin-left: 5px;">';
+        const BL18120_IMG = '<img src="https://fi.makitamedia.com/images/3_Makita/301_machines/3011_a_GS1/30120_JPG_zoom/1915J2-8_C2L0.jpg" alt="BL18120" style="height: 25px; vertical-align: middle; margin-left: 5px;">';
+        
+        // --- BASE DE DONNÉES DE COMPATIBILITÉ (Mise à jour avec le fichier machine.txt et correction DLL480 -> DLM480) ---
+        const compatibilityData = {
+          "DLM330": {"BL1890": "Non", "BL18120": "Non"},
+          "DLM382": {"BL1890": "Non", "BL18120": "Non"},
+          "DLM432": {"BL1890": "Non", "BL18120": "Non"},
+          "DLM462": {"BL1890": "Non", "BL18120": "Non"},
+          "DLM481": {"BL1890": "Oui", "BL18120": "Non"},
+          "DLM538": {"BL1890": "Oui", "BL18120": "Non"},
+          "DLM539": {"BL1890": "Oui", "BL18120": "Non"},
+          "DLM532": {"BL1890": "Non", "BL18120": "Non"},
+          "DLM480": {"BL1890": "Oui", "BL18120": "Non"},
+          "DUC306": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUC101": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUC122": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUC356": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUC307": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUA301": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUA300": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUX18": {"BL1890": "Non", "BL18120": "Non"},
+          "DUX60": {"BL1890": "Non", "BL18120": "Non"},
+          "DEADML810": {"BL1890": "Oui", "BL18120": "Oui"},
+          "CW002G": {"BL1890": "Non", "BL18120": "Non"},
+          "CW004G": {"BL1890": "Oui", "BL18120": "Non"},
+          "CW003G": {"BL1890": "Non", "BL18120": "Non"},
+          "ML010G": {"BL1890": "Non", "BL18120": "Non"},
+          "DEADML809": {"BL1890": "Non", "BL18120": "Non"},
+          "DEADML811": {"BL1890": "Non", "BL18120": "Non"},
+          "DEBDML816": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DEBDML815": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DEBDML812": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DMR056": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DMR055": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DEBDML808": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DEADML817": {"BL1890": "Oui", "BL18120": "Oui"},
+          "BML184": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUR193RF": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUR190L": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUR191": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUR192": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUR194": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUR189": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUR368L": {"BL1890": "Non", "BL18120": "Non"},
+          "DUR368A": {"BL1890": "Non", "BL18120": "Non"},
+          "DUR369A": {"BL1890": "Non", "BL18120": "Non"},
+          "DUR369L": {"BL1890": "Non", "BL18120": "Non"},
+          "MR006G": {"BL1890": "Non", "BL18120": "Non"},
+          "MR001G": {"BL1890": "Non", "BL18120": "Non"},
+          "MR002G": {"BL1890": "Non", "BL18120": "Non"},
+          "MR004G": {"BL1890": "Non", "BL18120": "Non"},
+          "DEADML003G": {"BL1890": "Non", "BL18120": "Non"},
+          "DEBDML009G": {"BL1890": "Oui", "BL18120": "Non"},
+          "CW001G": {"BL1890": "Non", "BL18120": "Non"},
+          "DMP181": {"BL1890": "Oui", "BL18120": "Oui"},
+          "ADP05": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DKT360": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DCF003G": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DCF102": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DCF301": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DCF300": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUH506": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUH507": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUH523": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUM604": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUM111": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUH502": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUH602": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUH752": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUN461": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUH604": {"BL1890": "Oui", "BL18120": "Non"},
+          "DUH754": {"BL1890": "Oui", "BL18120": "Non"},
+          "DUB362": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUB185": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUB187": {"BL1890": "Oui", "BL18120": "Non"},
+          "DUB363": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUB186": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUB361": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DDG460": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DDG461": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUS158": {"BL1890": "Non", "BL18120": "Non"},
+          "DUS108": {"BL1890": "Non", "BL18120": "Non"},
+          "DHW080": {"BL1890": "Oui", "BL18120": "Non"},
+          "DEADML813": {"BL1890": "Non", "BL18120": "Non"},
+          "DCU601": {"BL1890": "Non", "BL18120": "Non"},
+          "DCU180": {"BL1890": "Non", "BL18120": "Non"},
+          "DCU602": {"BL1890": "Non", "BL18120": "Non"},
+          "DCU603": {"BL1890": "Non", "BL18120": "Non"},
+          "DCU604": {"BL1890": "Non", "BL18120": "Non"},
+          "DCU605": {"BL1890": "Non", "BL18120": "Non"},
+          "DBN601": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DMR20X": {"BL1890": "Non", "BL18120": "Non"},
+          "MR014G": {"BL1890": "Non", "BL18120": "Non"},
+          "DVC560": {"BL1890": "Non", "BL18120": "Non"},
+          "DVC150L": {"BL1890": "Non", "BL18120": "Non"},
+          "DVC157L": {"BL1890": "Non", "BL18120": "Non"},
+          "DVC867L": {"BL1890": "Non", "BL18120": "Non"},
+          "DVC866L": {"BL1890": "Non", "BL18120": "Non"},
+          "DVC156L": {"BL1890": "Non", "BL18120": "Non"},
+          "DVC864": {"BL1890": "Non", "BL18120": "Non"},
+          "DVC750L": {"BL1890": "Non", "BL18120": "Non"},
+          "DVC660": {"BL1890": "Non", "BL18120": "Non"},
+          "DVC350": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DVC665": {"BL1890": "Non", "BL18120": "Non"},
+          "DPV300": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DPO600": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DHG181": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DTC100": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DWD181": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DVP181": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DSL801": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUT131": {"BL1890": "Non", "BL18120": "Non"},
+          "DTR180": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DRV150": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DRV250": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DCO181": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DVR450": {"BL1890": "Non", "BL18120": "Non"},
+          "DUT130": {"BL1890": "Non", "BL18120": "Non"},
+          "DSC121": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DSC163": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DSC251": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DSD180": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DSC102": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DLW140": {"BL1890": "Oui", "BL18120": "Non"},
+          "DPB184": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DPB182": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DJS131": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DJS800": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DJS130": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DJS161": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DJS200": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA452": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA901": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA900": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA506": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA504": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA508": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA513": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA517": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA521": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA520": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA519": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGD800": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA700": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DCC500": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DCS553": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DDF083": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DDF487": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DHP453": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DDF482": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DHP482": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DDF484": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DHP484": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DDF489": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DHP489": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DHP487": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DDF485": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DHP486": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DDF486": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DHP451": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DHP458": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DTD": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DTW": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DFS": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DDA350": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DDA351": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DDA": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DWR180": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DWT310": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DFR": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DHS783": {"BL1890": "Non", "BL18120": "Non"},
+          "DHS782": {"BL1890": "Non", "BL18120": "Non"},
+          "DHS900": {"BL1890": "Non", "BL18120": "Non"},
+          "DHS710": {"BL1890": "Non", "BL18120": "Non"},
+          "DHS660": {"BL1890": "Non", "BL18120": "Non"},
+          "DHS661": {"BL1890": "Non", "BL18120": "Non"},
+          "DSS501": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DHS630": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DSP600": {"BL1890": "Non", "BL18120": "Non"},
+          "DSP601": {"BL1890": "Non", "BL18120": "Non"},
+          "DRS780": {"BL1890": "Non", "BL18120": "Non"},
+          "DLS600": {"BL1890": "Non", "BL18120": "Non"},
+          "DBN": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DST221": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DJR": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DTM": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DJV185": {"BL1890": "Non", "BL18120": "Non"},
+          "DJV181": {"BL1890": "Non", "BL18120": "Non"},
+          "DJV182": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DJV184": {"BL1890": "Non", "BL18120": "Non"},
+          "DJV180": {"BL1890": "Non", "BL18120": "Non"},
+          "DJV186": {"BL1890": "Non", "BL18120": "Non"},
+          "DBO380": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DBO180": {"BL1890": "Non", "BL18120": "Non"},
+          "DBO480": {"BL1890": "Non", "BL18120": "Oui"},
+          "DRT52": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DRT50": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DKP181": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DKP180": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DHR165": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DHR183": {"BL1890": "Non", "BL18120": "Non"},
+          "DHR171": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DHR202": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DHR182": {"BL1890": "Non", "BL18120": "Non"},
+          "DHR264": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DHR243": {"BL1890": "Non", "BL18120": "Non"},
+          "DHR281": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DHR400": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DHK180": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DHR283": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DLS111": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DLS211": {"BL1890": "Oui", "BL18120": "Oui"},
+          "PDC01": {"BL1890": "Non", "BL18120": "Non"},
+          "DCE090": {"BL1890": "Non", "BL18120": "Non"},
+          "DUV320": {"BL1890": "Non", "BL18120": "Non"},
+          "DHW180": {"BL1890": "Non", "BL18120": "Non"},
+          "DUP180": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DLS212": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DLM460": {"BL1890": "Oui", "BL18120": "Non"},
+          "DLS110": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DLS112": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DLS714": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA404": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA405": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA406": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA408": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA411": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA412": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA413": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA414": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA417": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA418": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA419": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA420": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA454": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA455": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA456": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA458": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA461": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA462": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA463": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA464": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA467": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA468": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA469": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA505": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA511": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA512": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA514": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA515": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA518": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DGA701": {"BL1890": "Oui", "BL18120": "Oui"},
+          "DUB184": {"BL1890": "Oui", "BL18120": "Non"},
+          "DRC200": {"BL1890": "Non", "BL18120": "Non"},
+          "DRC300": {"BL1890": "Non", "BL18120": "Non"},
+          "DPB180": {"BL1890": "Non", "BL18120": "Non"},
+          "DJR181": {"BL1890": "Non", "BL18120": "Non"},
+          "DJR360": {"BL1890": "Non", "BL18120": "Non"},
+          "DBY180": {"BL1890": "Non", "BL18120": "Non"},
+          "DCF203": {"BL1890": "Non", "BL18120": "Non"},
+          "DCW180": {"BL1890": "Non", "BL18120": "Non"},
+          "ML813": {"BL1890": "Non", "BL18120": "Non"},
+          "ML814": {"BL1890": "Non", "BL18120": "Non"},
+          "SKR001G": {"BL1890": "Non", "BL18120": "Non"},
+          "DCM501": {"BL1890": "Non", "BL18120": "Non"},
+          "DUR361": {"BL1890": "Non", "BL18120": "Non"},
+          "DUR362": {"BL1890": "Non", "BL18120": "Non"},
+          "DUR363": {"BL1890": "Non", "BL18120": "Non"},
+          "DUR364": {"BL1890": "Non", "BL18120": "Non"},
+          "DUR365": {"BL1890": "Non", "BL18120": "Non"},
+          "DUR366": {"BL1890": "Non", "BL18120": "Non"},
+          "DUR367": {"BL1890": "Non", "BL18120": "Non"},
+          "DUR195L": {"BL1890": "Non", "BL18120": "Non"},
+          "DUR195U": {"BL1890": "Non", "BL18120": "Non"},
+          "DUR195W": {"BL1890": "Non", "BL18120": "Non"},
+          "DUR195S": {"BL1890": "Non", "BL18120": "Non"},
+          "DUN500W": {"BL1890": "Non", "BL18120": "Non"},
+          "DUN501W": {"BL1890": "Non", "BL18120": "Non"},
+          "DUN600L": {"BL1890": "Non", "BL18120": "Non"},
+          "DUN601L": {"BL1890": "Non", "BL18120": "Non"},
+          "DMUS155": {"BL1890": "Non", "BL18120": "Non"},
+          "DMUS156": {"BL1890": "Non", "BL18120": "Non"},
+          "DMUS200": {"BL1890": "Non", "BL18120": "Non"},
+          "DUS054": {"BL1890": "Non", "BL18120": "Non"},
+          "DVF104": {"BL1890": "Non", "BL18120": "Non"},
+          "DVF154": {"BL1890": "Non", "BL18120": "Non"},
+          "BAP182": {"BL1890": "Non", "BL18120": "Non"},
+          "BCV01": {"BL1890": "Non", "BL18120": "Non"},
+          "DHR261": {"BL1890": "Non", "BL18120": "Non"},
+          "DHR261T": {"BL1890": "Non", "BL18120": "Non"},
+          "197580-6": {"BL1890": "Non", "BL18120": "Non"}
+        };
+
+        // Fonction pour mettre à jour les résultats de compatibilité
+        function updateResults(model) {
+            const result = compatibilityData[model.toUpperCase()];
+            const bl1890Result = document.getElementById('bl1890-result');
+            const bl18120Result = document.getElementById('bl18120-result');
+            const resultsContainer = document.getElementById('results-container');
+            const notFoundMessage = document.getElementById('not-found');
+
+            if (result) {
+                // BL1890
+                let bl1890Status = result.BL1890;
+                let bl1890Html = bl1890Status;
+                
+                if (bl1890Status === "Oui") {
+                    bl1890Html += BL1890_IMG;
+                }
+                
+                bl1890Result.innerHTML = bl1890Html; // Utilisation de innerHTML pour l'image
+                bl1890Result.className = bl1890Status === "Oui" ? "status-oui" : "status-non";
+
+                // BL18120
+                let bl18120Status = result.BL18120;
+                let bl18120Html = bl18120Status;
+                
+                if (bl18120Status === "Oui") {
+                    bl18120Html += BL18120_IMG;
+                }
+
+                bl18120Result.innerHTML = bl18120Html; // Utilisation de innerHTML pour l'image
+                bl18120Result.className = bl18120Status === "Oui" ? "status-oui" : "status-non";
+                
+                resultsContainer.style.display = 'block';
+                notFoundMessage.style.display = 'none';
+            } else {
+                resultsContainer.style.display = 'none';
+                notFoundMessage.style.display = 'block';
+            }
+        }
+
+        // Fonction pour mettre à jour les suggestions (Affiche toutes les réf. si inputValue est vide)
+        function updateSuggestions(inputValue) {
+            const suggestionsBox = document.getElementById('suggestions-box');
+            suggestionsBox.innerHTML = '';
+            
+            const models = Object.keys(compatibilityData);
+            const filteredModels = models.filter(model => 
+                // Filtre les modèles commençant par la saisie de l'utilisateur (fonctionne aussi avec une saisie vide)
+                model.toUpperCase().startsWith(inputValue.toUpperCase())
+            ).sort();
+
+            // Affiche les 100 premières suggestions pour des raisons de performance et de visibilité
+            filteredModels.slice(0, 100).forEach(model => {
+                const item = document.createElement('div');
+                item.className = 'suggestion-item';
+                item.textContent = model;
+                item.onclick = function() {
+                    document.getElementById('search-input').value = model;
+                    suggestionsBox.innerHTML = ''; // Cacher les suggestions
+                    updateResults(model);
+                };
+                suggestionsBox.appendChild(item);
+            });
+        }
+
+        // Fonction pour gérer l'entrée utilisateur et le focus
+        function handleInput() {
+            const searchInput = document.getElementById('search-input');
+            const inputValue = searchInput.value.trim().toUpperCase();
+            const suggestionsBox = document.getElementById('suggestions-box');
+            const resultsContainer = document.getElementById('results-container');
+            const notFoundMessage = document.getElementById('not-found');
+
+            // 1. Toujours mettre à jour les suggestions (filtrées si saisie, ou toutes au focus/input vide)
+            updateSuggestions(searchInput.value.trim());
+
+            let foundExactMatch = false;
+
+            // 2. Vérifier si la saisie exacte correspond à un modèle
+            if (compatibilityData[inputValue]) {
+                foundExactMatch = true;
+            }
+
+            // 3. Gérer l'affichage des résultats ou du message non trouvé
+            if (foundExactMatch) {
+                updateResults(inputValue);
+                suggestionsBox.innerHTML = ''; // Cacher les suggestions si correspondance exacte
+            } else if (inputValue.length > 0 && suggestionsBox.children.length === 0) {
+                // Si l'utilisateur a tapé quelque chose et qu'il n'y a pas de suggestions (modèle non trouvé)
+                resultsContainer.style.display = 'none';
+                notFoundMessage.style.display = 'block';
+            } else {
+                // Sinon, cacher les résultats et le message non trouvé
+                resultsContainer.style.display = 'none';
+                notFoundMessage.style.display = 'none';
+            }
+        }
+        
+        // Cacher les suggestions lorsque l'on clique ailleurs
+        document.addEventListener('click', function(e) {
+            const suggestionsBox = document.getElementById('suggestions-box');
+            if (e.target.id !== 'search-input' && e.target.className !== 'suggestion-item') {
+                suggestionsBox.innerHTML = '';
+            }
+        });
+
+        // Appeler handleInput() une fois au chargement pour simuler la mise à jour si le champ était pré-rempli
+        window.onload = () => handleInput();
+    </script>
+
+</body>
+</html>
