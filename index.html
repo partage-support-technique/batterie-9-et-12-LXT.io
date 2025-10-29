@@ -538,8 +538,7 @@
                 model.toUpperCase().startsWith(inputValue.toUpperCase())
             ).sort();
 
-            // Affiche les 100 premières suggestions
-            filteredModels.slice(0, 100).forEach(model => {
+            filteredModels.forEach(model => { // Supprime la limitation à 100
                 const item = document.createElement('div');
                 item.className = 'suggestion-item';
                 item.textContent = model;
@@ -610,6 +609,7 @@
 
 </body>
 </html>
+
 
 
 
